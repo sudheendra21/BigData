@@ -11,6 +11,8 @@ const {
 const { makeSchemaOptional } = require("../utils/helper");
 
 const PLAN_SCHEMA = require("../models/plan.model");
+const PARTIAL_PLAN_SCHEMA = require("../models/partialplan.model");
+
 const {
     createSavePlan,
     getSavedPlan,
@@ -322,10 +324,10 @@ const patchPlan = async (req, res) => {
 
         console.log("Validating JSON body")
 
-        const patchSchema = JSON.parse(JSON.stringify(PLAN_SCHEMA));
-        makeSchemaOptional(patchSchema);
+        // const patchSchema = JSON.parse(JSON.stringify(PLAN_SCHEMA));
+        // makeSchemaOptional(patchSchema);
 
-        const isValidSchema = await isValidJSONSchema(planJSON, PLAN_SCHEMA);
+        const isValidSchema = await isValidJSONSchema(planJSON, PARTIAL_PLAN_SCHEMA);
 
         if (isValidSchema?.error) {
             console.log("Invalid JSON");
