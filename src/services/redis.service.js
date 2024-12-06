@@ -57,6 +57,10 @@ const sMembers = async (key) => {
     return await client.sMembers(key);
 }
 
+const getKeyType = async (key) => {
+    return await client.type(key); // Will return string, set, hash, list, etc.
+}
+
 const getTopLevelPlanKeys = async () => {
     const keys = await client.keys("plan_*");
     output = [];
@@ -80,5 +84,6 @@ module.exports = {
     deleteKeys,
     getAllValuesByKey,
     sMembers,
-    getTopLevelPlanKeys
+    getTopLevelPlanKeys,
+    getKeyType
 }

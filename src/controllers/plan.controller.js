@@ -325,7 +325,7 @@ const patchPlan = async (req, res) => {
         const patchSchema = JSON.parse(JSON.stringify(PLAN_SCHEMA));
         makeSchemaOptional(patchSchema);
 
-        const isValidSchema = await isValidJSONSchema(planJSON, patchSchema);
+        const isValidSchema = await isValidJSONSchema(planJSON, PLAN_SCHEMA);
 
         if (isValidSchema?.error) {
             console.log("Invalid JSON");

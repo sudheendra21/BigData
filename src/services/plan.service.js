@@ -6,7 +6,8 @@ const {
     sMembers,
     getKeys,
     setETag,
-    getTopLevelPlanKeys
+    getTopLevelPlanKeys,
+    getKeyType
 } = require("./redis.service");
 const hash = require('object-hash');
 
@@ -63,15 +64,29 @@ const convertToList = async (array) => {
 
 
 const getOrDeletePlanData = async (redisKey, outputMap, isDelete) => {
-    const keys = await getKeys(`${redisKey}*`);
+
+    const exactkey = await getKeys(redisKey);
+    const patternkey = await getKeys(`${redisKey}_*`);
+
+    const keys = [...exactkey, ...patternkey];
+    console.log(`Keys found for pattern ${redisKey}* : `, keys);
+
     for (let l = 0; l < keys.length; l++) {
         const key = keys[l];
+        console.log(`Processing key: ${key}`);
+
+        // Get the type of the current key
+        const keyType = await getKeyType(key);
+        console.log(`Key type for ${key}: ${keyType}`);
 
         if (key === redisKey) {
             if (isDelete) {
-                deleteKeys([key]);
-            } else {
+                console.log(`Deleting key: ${key}`);
+                await deleteKeys([key]); // Ensure you await this call
+            } else if (keyType === 'hash') {
+                // Only try to get values if the key is a hash
                 const val = await getAllValuesByKey(key);
+                console.log(`Retrieved values for key ${key}:`, val);
                 for (let [keyName, _] of Object.entries(val)) {
                     if (keyName.toLowerCase() !== "etag") {
                         outputMap[keyName] = !isNaN(val[keyName]) ? Number(val[keyName]) : val[keyName];
@@ -80,40 +95,57 @@ const getOrDeletePlanData = async (redisKey, outputMap, isDelete) => {
             }
         } else {
             const newStr = key.substring(`${redisKey}_`.length);
-            const members = [...(await sMembers(key))];
-            if (members.length > 1) {
-                const listObj = [];
-                for (let i = 0; i < members.length; i++) {
-                    const member = members[i];
-                    if (isDelete) {
-                        await getOrDeletePlanData(member, null, true);
-                    } else {
-                        listObj.push(await getOrDeletePlanData(member, {}, false));
+            if (keyType === 'set') {
+                const members = [...(await sMembers(key))];
+                console.log(`Members found for key ${key}:`, members);
+
+                if (members.length > 1) {
+                    const listObj = [];
+                    for (let i = 0; i < members.length; i++) {
+                        const member = members[i];
+                        if (isDelete) {
+                            console.log(`Recursively deleting member: ${member}`);
+                            await getOrDeletePlanData(member, null, true); // Ensure recursive delete
+                        } else {
+                            listObj.push(await getOrDeletePlanData(member, {}, false));
+                        }
                     }
-                }
-                if (isDelete) {
-                    await deleteKeys([key]);
+                    if (isDelete) {
+                        console.log(`Deleting key after processing members: ${key}`);
+                        await deleteKeys([key]); // Delete the set key itself after processing members
+                    } else {
+                        outputMap[newStr] = listObj;
+                    }
                 } else {
-                    outputMap[newStr] = listObj;
+                    if (members.length === 1) {
+                        const memberKey = members[0];
+                        const memberKeyType = await getKeyType(memberKey);
+                        console.log(`Key type for member ${memberKey}: ${memberKeyType}`);
+                        if (isDelete) {
+                            console.log(`Deleting member and key: ${memberKey}, ${key}`);
+                            await deleteKeys([memberKey, key]); // Ensure both member and key are deleted
+                        } else if (memberKeyType === 'hash') {
+                            const val = await getAllValuesByKey(memberKey);
+                            const newMap = {};
+                            console.log(`Retrieved values for member key ${memberKey}:`, val);
+
+                            for (let [keyName, _] of Object.entries(val)) {
+                                newMap[keyName] = !isNaN(val[keyName]) ? Number(val[keyName]) : val[keyName];
+                            }
+
+                            outputMap[newStr] = newMap;
+                        }
+                    }
                 }
             } else {
-                if (isDelete) {
-                    await deleteKeys([members[0], key]);
-                } else {
-                    const val = await getAllValuesByKey(members[0]);
-                    const newMap = {};
-
-                    for (let [keyName, _] of Object.entries(val)) {
-                        newMap[keyName] = !isNaN(val[keyName]) ? Number(val[keyName]) : val[keyName];
-                    }
-                    outputMap[newStr] = newMap;
-                }
+                console.log(`Skipping key ${key} as it is not a set (expected set, found ${keyType})`);
             }
         }
     }
 
     return outputMap;
 };
+
 
 const deleteSavedPlan = async (key) => {
     await getOrDeletePlanData(key, {}, true);
