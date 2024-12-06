@@ -5,7 +5,8 @@ const {
     getAllValuesByKey,
     sMembers,
     getKeys,
-    setETag
+    setETag,
+    getTopLevelPlanKeys
 } = require("./redis.service");
 const hash = require('object-hash');
 
@@ -124,11 +125,24 @@ const generateETag = (key, jsonObject) => {
     return eTag;
 }
 
+// Get all plans
+const getAllPlans = async () => {
+    const output = [];
+    const topkeys = await getTopLevelPlanKeys();
+  
+    for (const topkey of topkeys) {
+      const plan = await getSavedPlan(topkey);
+      output.push(plan);
+    }
+    return output;
+  };
+
 module.exports = {
     getSavedPlan,
     convertJSONToMap,
     createSavePlan,
     getOrDeletePlanData,
     deleteSavedPlan,
-    generateETag
+    generateETag,
+    getAllPlans
 }

@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // register all the routes of the application
-app.use('/v1', routes);
+app.use('/api/v1', routes);
 
 /**
  * Health Check API 

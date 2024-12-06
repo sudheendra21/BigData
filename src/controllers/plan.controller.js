@@ -13,10 +13,20 @@ const {
     createSavePlan,
     getSavedPlan,
     deleteSavedPlan,
-    generateETag
+    generateETag,
+    getAllPlans
 } = require('../services/plan.service');
 
 //const rabbit = require("../services/rabbitmq.service");
+
+const getAll = async (req, res) => {
+    try {
+        const data = await getAllPlans(); // Call service layer to get all plans
+        res.status(status.OK).json(data); // 200 OK with all the data
+    } catch (err) {
+        res.status(status.INTERNAL_SERVER_ERROR).json({ message: err.message }); // Handle errors
+    }
+};
 
 const getPlan = async (req, res) => {
     console.log("Executing the GET method.");
@@ -361,6 +371,7 @@ const patchPlan = async (req, res) => {
 
 module.exports = {
     getPlan,
+    getAll,
     createPlan,
     deletePlan,
     putPlan,

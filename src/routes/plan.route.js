@@ -9,7 +9,8 @@ const router = express.Router();
 
 router
     .route('/')
-    .post(auth,planController.createPlan);
+    .post(auth,planController.createPlan)
+    .get(auth, planController.getAll);
 
 router
     .route('/:objectId')

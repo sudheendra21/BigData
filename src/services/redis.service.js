@@ -57,6 +57,19 @@ const sMembers = async (key) => {
     return await client.sMembers(key);
 }
 
+const getTopLevelPlanKeys = async () => {
+    const keys = await client.keys("plan_*");
+    output = [];
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const parts = key.split("_");
+      if (parts.length === 2) {
+        output.push(key);
+      }
+    }
+    return output;
+  };
+
 module.exports = {
     ifKeyExists,
     getETag,
@@ -66,5 +79,6 @@ module.exports = {
     getKeys,
     deleteKeys,
     getAllValuesByKey,
-    sMembers
+    sMembers,
+    getTopLevelPlanKeys
 }
