@@ -8,6 +8,8 @@ const {
     isValidJSONSchema
 } = require('../services/jsonSchema.service');
 
+const { makeSchemaOptional } = require("../utils/helper");
+
 const PLAN_SCHEMA = require("../models/plan.model");
 const {
     createSavePlan,
@@ -129,6 +131,7 @@ const createPlan = async (req, res) => {
             objectId: planJSON.objectId
         })
     } catch (error) {
+        console.log(error);
         return res.status(status.UNAUTHORIZED).send({
             message: "Something went wrong!!"
         });
@@ -318,7 +321,11 @@ const patchPlan = async (req, res) => {
         }
 
         console.log("Validating JSON body")
-        const isValidSchema = await isValidJSONSchema(planJSON, PLAN_SCHEMA);
+
+        const patchSchema = JSON.parse(JSON.stringify(PLAN_SCHEMA));
+        makeSchemaOptional(patchSchema);
+
+        const isValidSchema = await isValidJSONSchema(planJSON, patchSchema);
 
         if (isValidSchema?.error) {
             console.log("Invalid JSON");
@@ -345,7 +352,11 @@ const patchPlan = async (req, res) => {
         }
 
         console.log("Create new ETag");
+        console.log("urlETag: ", urlETag);
+        console.log("eTag: ", eTag);
+
         await createSavePlan(KEY, planJSON);
+        console.log("After create Save Plan");
         const eTagNew = generateETag(KEY, planJSON);
 
         console.log("Saved successfully!!");
@@ -362,6 +373,7 @@ const patchPlan = async (req, res) => {
         res.setHeader('ETag', eTagNew);
         return res.status(status.OK).send(plan);
     } catch (error) {
+        console.log(error)
         console.log(JSON.stringify(error))
         return res.status(status.UNAUTHORIZED).send({
             message: "Something went wrong!!"
