@@ -23,6 +23,27 @@ const {
 
 //const rabbit = require("../services/rabbitmq.service");
 
+// Check ETag conditions
+const checkETags = (req, res, eTag) => {
+    const ifNoneMatch = req.headers["if-none-match"];
+    const ifMatch = req.headers["if-match"];
+  
+    // If `if-none-match` matches, return 304
+    if (ifNoneMatch && ifNoneMatch === eTag) {
+      return res.status(304).send();
+    }
+  
+    // If `if-match` does not match, return 412
+    if (ifMatch && ifMatch !== eTag) {
+      return res
+        .status(412)
+        .json({ error: "Precondition Failed: Resource has been modified" });
+    }
+  
+    // No condition met, continue with request processing
+    return null;
+  };
+
 const getAll = async (req, res) => {
     try {
         const data = await getAllPlans(); // Call service layer to get all plans
@@ -58,12 +79,17 @@ const getPlan = async (req, res) => {
 
         const eTag = await getETag(KEY);
 
-        const urlETag = req.headers['If-None-Match'];
-        if (!!urlETag && urlETag.equals(eTag)) {
-            console.log(`${eTag}: ETag present.`);
-            res.setHeader('ETag', eTag);
-            return res.status(status.NOT_MODIFIED);
-        }
+        // const urlETag = req.headers['if-none-match'];
+        // if (!!urlETag && urlETag.equals(eTag)) {
+        //     console.log(`${eTag}: ETag present.`);
+        //     res.setHeader('ETag', eTag);
+        //     return res.status(status.NOT_MODIFIED);
+        // }
+
+        // Check ETag conditions
+        const conditionResult = checkETags(req, res, eTag);
+        if (conditionResult) return conditionResult; // End response if ETag condition met
+        
         console.log("Saving Plan...");
         const plan = await getSavedPlan(KEY);
         console.log("Saved successfully!!")
@@ -164,6 +190,13 @@ const deletePlan = async (req, res) => {
                 type: "Invalid"
             });
         }
+
+        const eTag = await getETag(KEY);
+
+         // Check ETag conditions
+         const conditionResult = checkETags(req, res, eTag);
+         if (conditionResult) return conditionResult; // End response if ETag condition m
+
 
         console.log("sending message to queue....")
 
@@ -352,6 +385,10 @@ const patchPlan = async (req, res) => {
             res.setHeader('ETag', eTag)
             return res.status(status.PRECONDITION_FAILED).send();
         }
+        
+        // Check ETag conditions
+        const conditionResult = checkETags(req, res, eTag);
+        if (conditionResult) return conditionResult; // End response if ETag condition met
 
         console.log("Create new ETag");
         console.log("urlETag: ", urlETag);
