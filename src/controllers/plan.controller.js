@@ -22,6 +22,7 @@ const {
 } = require('../services/plan.service');
 
 //const rabbit = require("../services/rabbitmq.service");
+const { publishMessage } = require('../utils/rabbitmq');
 
 // Check ETag conditions
 const checkETags = (req, res, eTag) => {
@@ -149,6 +150,7 @@ const createPlan = async (req, res) => {
             body: planJSON,
         }
         //rabbit.producer(message);
+        await publishMessage('planQueue', JSON.stringify({ action: 'create', data: planJSON }));
 
         console.log(`${planJSON.objectId}: Plan created successfully!`);
 
@@ -207,6 +209,7 @@ const deletePlan = async (req, res) => {
             body: oldPlan
         }
         //rabbit.producer(message);
+        await publishMessage('planQueue', JSON.stringify({ action: 'delete', data: { objectId } }));
 
         console.log("Deleting plan...");
         await deleteSavedPlan(KEY);
@@ -294,6 +297,7 @@ const putPlan = async (req, res) => {
             body: oldPlan
         }
         //rabbit.producer(message);
+        await publishMessage('planQueue', JSON.stringify({ action: 'update', data: { id, planJSON } }));
 
         await deleteSavedPlan(KEY);
         console.log("Create new ETag");
@@ -408,6 +412,7 @@ const patchPlan = async (req, res) => {
             body: plan
         }
         //rabbit.producer(message);
+        await publishMessage('planQueue', JSON.stringify({ action: 'update', data: { objectId, planJSON } }));
 
         res.setHeader('ETag', eTagNew);
         return res.status(status.OK).send(plan);

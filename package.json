@@ -11,7 +11,9 @@
   "author": "Tejas Choudhari",
   "license": "ISC",
   "dependencies": {
+    "@elastic/elasticsearch": "^8.16.2",
     "ajv": "^8.17.1",
+    "amqplib": "^0.10.5",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "deepmerge": "^4.3.1",

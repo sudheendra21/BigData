@@ -1,7 +1,9 @@
 const { OAuth2Client } = require("google-auth-library");
 const axios = require("axios");
+const config = require("../../config/local.json");
 
-const gmailOAuth2Client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+//const gmailOAuth2Client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const gmailOAuth2Client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
 // Middleware to check authentication
 const auth = async (req, res, next) => {
